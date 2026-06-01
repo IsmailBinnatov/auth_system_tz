@@ -1,0 +1,103 @@
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, String, ForeignKey, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+
+
+# CORE MODELS
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    surname: Mapped[str] = mapped_column(String(50), nullable=False)
+    middle_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    hashed_password: Mapped[str] = mapped_column(String(1024), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    role_associations: Mapped[list['UserRole']] = relationship(
+        back_populates='user',
+        cascade='all, delete-orphan',
+    )
+
+
+class Role(Base):
+    __tablename__ = 'roles'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
+
+    user_associations: Mapped[list['UserRole']] = relationship(
+        back_populates='role',
+        cascade='all, delete-orphan',
+    )
+
+    permission_associations: Mapped[list['RolePermission']] = relationship(
+        back_populates='role',
+        cascade='all, delete-orphan',
+    )
+
+
+class Permission(Base):
+    __tablename__ = 'permissions'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
+
+    role_associations: Mapped[list['RolePermission']] = relationship(
+        back_populates='permission',
+        cascade='all, delete-orphan',
+    )
+
+
+# MANY-TO-MANY PIVOT TABLES
+
+class UserRole(Base):
+    __tablename__ = 'user_roles'
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey('users.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey('roles.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+    )
+
+    user: Mapped['User'] = relationship(back_populates='role_associations')
+    role: Mapped['Role'] = relationship(back_populates='user_associations')
+
+
+class RolePermission(Base):
+    __tablename__ = 'role_permissions'
+
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey('roles.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    permission_id: Mapped[int] = mapped_column(
+        ForeignKey('permissions.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+
+    role: Mapped['Role'] = relationship(
+        back_populates='permission_associations'
+    )
+    permission: Mapped['Permission'] = relationship(
+        back_populates='role_associations'
+    )
