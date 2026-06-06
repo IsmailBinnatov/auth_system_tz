@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app.models.models import User
 from app.repositories.user import UserRepository
 from app.schemas.auth import UserRegister
@@ -17,11 +19,12 @@ class UserService:
 
     async def user_register(self, user_data: UserRegister) -> User | None:
         if not user_data.password == user_data.password_repeat:
-            return None
+            raise HTTPException(
+                status_code=400, detail='Passwords do not match')
 
         email_exists = await self.user_repo.get_user_by_email(user_data.email)
         if email_exists:
-            return None
+            raise HTTPException(status_code=409, detail='Email exists')
 
         hashed_pswd = hash_password(user_data.password)
 
