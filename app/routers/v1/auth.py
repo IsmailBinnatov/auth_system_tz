@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.schemas.auth import UserRegister, UserResponse, UserLogin, TokenResponse
+from app.schemas.auth import UserRegister, UserResponse, UserLogin, UserUpdate, TokenResponse
 from app.services.user import UserService
 from app.models.models import User
 from app.core.dependencies import get_user_service
@@ -51,3 +51,26 @@ async def get_me(
     current_user: User = Depends(get_current_user)
 ):
     return current_user
+
+
+@router.patch('/me', response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def update_me(
+    user_data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+):
+    user = await user_service.update_user(current_user, user_data)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Update failed',
+        )
+    return user
+
+
+@router.delete('/me', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+):
+    await user_service.soft_delete_user(current_user)

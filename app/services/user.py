@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from app.models.models import User
 from app.repositories.user import UserRepository
-from app.schemas.auth import UserRegister
+from app.schemas.auth import UserRegister, UserUpdate
 from app.core.auth.security import hash_password, verify_password
 from app.core.auth.jwt import create_access_token
 
@@ -62,3 +62,22 @@ class UserService:
         payload = {'sub': str(user.id)}
         token = create_access_token(payload)
         return token
+
+    async def update_user(self, user: User, user_data: UserUpdate) -> User | None:
+        updates = user_data.model_dump(exclude_unset=True)
+        if not updates:
+            return user
+
+        new_email = updates.get('email')
+        if new_email and new_email != user.email:
+            email_exists = await self.user_repo.get_active_user_by_email(new_email)
+            if email_exists:
+                return None
+
+        updated_user = await self.user_repo.update_user(user, updates)
+        await self.user_repo.commit()
+        return updated_user
+
+    async def soft_delete_user(self, user: User) -> None:
+        await self.user_repo.delete_user(user)
+        await self.user_repo.commit()

@@ -59,3 +59,13 @@ class UserRepository:
 
     async def commit(self):
         await self.db.commit()
+
+    async def update_user(self, user: User, user_data: dict) -> User:
+        for field, value in user_data.items():
+            setattr(user, field, value)
+
+        self.db.add(user)
+        return user
+
+    async def soft_delete_user(self, user: User) -> None:
+        user.is_active = False
