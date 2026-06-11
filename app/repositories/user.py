@@ -25,10 +25,11 @@ class UserRepository:
         user = (await self.db.execute(query)).scalar_one_or_none()
         return user
 
-    async def get_user_by_email(self, email: str) -> User | None:
+    async def get_active_user_by_email(self, email: str) -> User | None:
         query = (
             select(User)
             .where(User.email == email)
+            .where(User.is_active == True)
         )
         user = (await self.db.execute(query)).scalar_one_or_none()
         return user
