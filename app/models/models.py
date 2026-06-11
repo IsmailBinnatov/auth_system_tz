@@ -101,3 +101,22 @@ class RolePermission(Base):
     permission: Mapped['Permission'] = relationship(
         back_populates='role_associations'
     )
+
+
+# TOKENS
+
+class TokenBlacklist(Base):
+    __tablename__ = 'tokens_blacklist'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    token: Mapped[str] = mapped_column(
+        String,
+        unique=True,
+        nullable=False,
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+    )
