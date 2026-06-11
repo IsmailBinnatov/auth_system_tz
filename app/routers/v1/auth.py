@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.post('/register', response_model=UserResponse)
+@router.post('/register', response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def user_register(
     user_data: UserRegister,
     user_service: UserService = Depends(get_user_service),
@@ -28,7 +28,7 @@ async def user_register(
     return user
 
 
-@router.post('/login', response_model=TokenResponse)
+@router.post('/login', response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def user_login(
     user_data: UserLogin,
     user_service: UserService = Depends(get_user_service),
