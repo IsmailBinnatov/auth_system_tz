@@ -79,5 +79,5 @@ class UserService:
         return updated_user
 
     async def soft_delete_user(self, user: User) -> None:
-        await self.user_repo.delete_user(user)
+        await self.user_repo.soft_delete_user(user)
         await self.user_repo.commit()
