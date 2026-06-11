@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.schemas.auth import UserRegister, UserResponse, UserLogin, UserUpdate, TokenResponse
 from app.services.user import UserService
 from app.models.models import User
 from app.core.dependencies import get_user_service
-from app.core.auth.dependencies import get_current_user
+from app.core.auth.dependencies import get_current_user, security
 
 
 router = APIRouter(
@@ -74,3 +75,13 @@ async def delete_user(
     user_service: UserService = Depends(get_user_service),
 ):
     await user_service.soft_delete_user(current_user)
+
+
+@router.post('/logout', status_code=status.HTTP_204_NO_CONTENT)
+async def logout_user(
+    current_user: User = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    user_service: UserService = Depends(get_user_service),
+):
+    token = credentials.credentials
+    await user_service.logout_user(token)

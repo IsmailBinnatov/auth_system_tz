@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.models import User, Role, UserRole
+from app.models.models import User, Role, UserRole, TokenBlacklist
 
 
 class UserRepository:
@@ -69,3 +71,19 @@ class UserRepository:
 
     async def soft_delete_user(self, user: User) -> None:
         user.is_active = False
+
+    # token methods
+    async def add_token_to_blacklist(self, token: str, expires_at: datetime) -> None:
+        blacklisted_token = TokenBlacklist(
+            token=token,
+            expires_at=expires_at,
+        )
+        self.db.add(blacklisted_token)
+
+    async def is_token_blacklisted(self, token: str) -> bool:
+        query = (
+            select(TokenBlacklist)
+            .where(TokenBlacklist.token == token)
+        )
+        blacklisted = (await self.db.execute(query)).scalar_one_or_none()
+        return blacklisted is not None

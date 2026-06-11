@@ -1,10 +1,12 @@
+from datetime import datetime
+
 from fastapi import HTTPException
 
 from app.models.models import User
 from app.repositories.user import UserRepository
 from app.schemas.auth import UserRegister, UserUpdate
 from app.core.auth.security import hash_password, verify_password
-from app.core.auth.jwt import create_access_token
+from app.core.auth.jwt import create_access_token, decode_token
 
 
 class UserService:
@@ -81,3 +83,18 @@ class UserService:
     async def soft_delete_user(self, user: User) -> None:
         await self.user_repo.soft_delete_user(user)
         await self.user_repo.commit()
+
+    async def logout_user(self, token: str) -> None:
+        payload = decode_token(token)
+        if not payload:
+            return
+
+        expires_at = datetime.fromtimestamp(
+            payload['exp'],
+            tz=None,
+        )
+        await self.user_repo.add_token_to_blacklist(token, expires_at)
+        await self.user_repo.commit()
+
+    async def is_token_blacklisted(self, token: str) -> bool:
+        return await self.user_repo.is_token_blacklisted(token)

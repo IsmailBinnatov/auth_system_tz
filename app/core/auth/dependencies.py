@@ -25,6 +25,10 @@ async def get_current_user(
     if not payload_dict:
         error_401_unautorized()
 
+    blacklisted_token = await user_service.is_token_blacklisted(credentials.credentials)
+    if blacklisted_token:
+        error_401_unautorized('Token has been revoked')
+
     user_id = int(payload_dict['sub'])
     user = await user_service.get_active_user_by_id(user_id)
 
