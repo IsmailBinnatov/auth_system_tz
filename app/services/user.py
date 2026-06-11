@@ -3,7 +3,8 @@ from fastapi import HTTPException
 from app.models.models import User
 from app.repositories.user import UserRepository
 from app.schemas.auth import UserRegister
-from app.core.auth.security import hash_password
+from app.core.auth.security import hash_password, verify_password
+from app.core.auth.jwt import create_access_token
 
 
 class UserService:
@@ -22,7 +23,7 @@ class UserService:
             raise HTTPException(
                 status_code=400, detail='Passwords do not match')
 
-        email_exists = await self.user_repo.get_user_by_email(user_data.email)
+        email_exists = await self.user_repo.get_active_user_by_email(user_data.email)
         if email_exists:
             raise HTTPException(status_code=409, detail='Email exists')
 
@@ -44,4 +45,20 @@ class UserService:
             role_name='user',
         )
 
+        await self.user_repo.commit()
         return db_user
+
+    async def user_login(self, email: str, password: str) -> str | None:
+        user = await self.user_repo.get_active_user_by_email(email)
+        if not user:
+            return None
+
+        if not verify_password(
+            password,
+            user.hashed_password,
+        ):
+            return None
+
+        payload = {'sub': str(user.id)}
+        token = create_access_token(payload)
+        return token
