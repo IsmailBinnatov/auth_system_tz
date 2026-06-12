@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.models import User, Role, UserRole, TokenBlacklist
+from app.models.models import User, Role, UserRole, Permission, RolePermission, TokenBlacklist
 
 
 class UserRepository:
@@ -87,3 +87,21 @@ class UserRepository:
         )
         blacklisted = (await self.db.execute(query)).scalar_one_or_none()
         return blacklisted is not None
+
+    # rbac
+    async def get_user_permissions(self, user_id: int) -> list[str]:
+        query = (
+            select(Permission.name)
+            .join(
+                RolePermission,
+                RolePermission.permission_id == Permission.id,
+            )
+            .join(
+                UserRole,
+                UserRole.role_id == RolePermission.role_id,
+            )
+            .where(UserRole.user_id == user_id)
+        )
+
+        permissions = (await self.db.scalars(query)).all()
+        return permissions

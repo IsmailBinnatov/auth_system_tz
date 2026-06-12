@@ -98,3 +98,6 @@ class UserService:
 
     async def is_token_blacklisted(self, token: str) -> bool:
         return await self.user_repo.is_token_blacklisted(token)
+
+    async def get_user_permissions(self, user_id: int) -> list[str]:
+        return await self.user_repo.get_user_permissions(user_id)
