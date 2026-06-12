@@ -9,5 +9,15 @@ services:
     volumes:
       - auth_system_db_data:/var/lib/postgresql/data
 
+  auth_system_api:
+    build: .
+    container_name: auth_system_api
+    env_file:
+      - ./.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth_system_db
+
 volumes:
   auth_system_db_data:
