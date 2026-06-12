@@ -4,8 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session_maker
-from app.models.models import Role, Permission, RolePermission
+from app.models.models import Role, Permission, RolePermission, User, UserRole
+from app.core.auth.security import hash_password
 
+
+ADMIN_EMAIL = 'admin@example.com'
+ADMIN_PASSWORD = 'admin123'
 
 RBAC = {
     'admin': [
@@ -94,6 +98,49 @@ async def seed_role_permission(
         session.add(new_role_permission)
 
 
+async def seed_admin_user(
+    session: AsyncSession,
+):
+    admin_exists = (
+        await session.execute(
+            select(User)
+            .where(User.email == ADMIN_EMAIL)
+        )
+    ).scalar_one_or_none()
+
+    if admin_exists:
+        return
+
+    admin = User(
+        name='admin',
+        surname='admin',
+        middle_name='admin',
+        email=ADMIN_EMAIL,
+        hashed_password=hash_password(ADMIN_PASSWORD),
+        is_active=True,
+    )
+
+    session.add(admin)
+    await session.flush()
+
+    admin_role = (
+        await session.execute(
+            select(Role)
+            .where(Role.name == 'admin')
+        )
+    ).scalar_one_or_none()
+
+    if not admin_role:
+        raise ValueError('Admin role not found')
+
+    user_role = UserRole(
+        user_id=admin.id,
+        role_id=admin_role.id,
+    )
+
+    session.add(user_role)
+
+
 async def seed_all():
     async with async_session_maker() as session:
         async with session.begin():
@@ -116,6 +163,8 @@ async def seed_all():
                 )
 
             await session.flush()
+
+            await seed_admin_user(session=session)
 
             for role_name, permissions in RBAC.items():
                 for permission in permissions:
