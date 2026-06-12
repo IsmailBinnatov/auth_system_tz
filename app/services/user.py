@@ -101,3 +101,14 @@ class UserService:
 
     async def get_user_permissions(self, user_id: int) -> list[str]:
         return await self.user_repo.get_user_permissions(user_id)
+
+    async def get_user_roles(self, user_id: int) -> list[str]:
+        return await self.user_repo.get_user_roles(user_id)
+
+    async def assign_role_to_user(self, user_id: int, role_name: str) -> None:
+        await self.user_repo.assign_role_to_user(user_id, role_name)
+        await self.user_repo.commit()
+
+    async def remove_role_from_user(self, user_id: int, role_name: str) -> None:
+        await self.user_repo.remove_role_from_user(user_id, role_name)
+        await self.user_repo.commit()

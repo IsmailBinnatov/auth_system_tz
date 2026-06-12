@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import User, Role, UserRole, Permission, RolePermission, TokenBlacklist
@@ -72,7 +72,6 @@ class UserRepository:
     async def soft_delete_user(self, user: User) -> None:
         user.is_active = False
 
-    # token methods
     async def add_token_to_blacklist(self, token: str, expires_at: datetime) -> None:
         blacklisted_token = TokenBlacklist(
             token=token,
@@ -88,7 +87,6 @@ class UserRepository:
         blacklisted = (await self.db.execute(query)).scalar_one_or_none()
         return blacklisted is not None
 
-    # rbac
     async def get_user_permissions(self, user_id: int) -> list[str]:
         query = (
             select(Permission.name)
@@ -105,3 +103,33 @@ class UserRepository:
 
         permissions = (await self.db.scalars(query)).all()
         return permissions
+
+    async def get_user_roles(self, user_id: int) -> list[str]:
+        query = (
+            select(Role.name)
+            .join(
+                UserRole,
+                UserRole.role_id == Role.id
+            )
+            .where(UserRole.user_id == user_id)
+        )
+
+        roles = (await self.db.scalars(query)).all()
+        return roles
+
+    async def remove_role_from_user(self, user_id: int, role_name: str) -> None:
+        role = (await self.db.execute(
+            select(Role)
+            .where(Role.name == role_name)
+        )).scalar_one_or_none()
+
+        if not role:
+            raise ValueError(f'Role \'{role_name}\' not found')
+
+        query = (
+            delete(UserRole)
+            .where(UserRole.user_id == user_id)
+            .where(UserRole.role_id == role.id)
+        )
+
+        await self.db.execute(query)
