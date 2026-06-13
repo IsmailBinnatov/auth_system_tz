@@ -24,7 +24,7 @@ async def get_user_permissions(
 
 
 @router.get('/users/{user_id}/roles', status_code=status.HTTP_200_OK)
-async def get_user_permissions(
+async def get_user_roles(
     user_id: int,
     user_service: UserService = Depends(get_user_service),
     _permission_checker: None = Depends(
